@@ -103,6 +103,7 @@ void display_accel_trans_rpm(unsigned char DotSize,const char* str,const char* s
     Send_CMD(CLEAR_COLOR_RGB(0, 0, 0));      //Determine the clear screen color
     Send_CMD(CLEAR(1, 1, 1));                //Clear the screen and the curren display list
 
+
     Send_CMD(TAG(1));                        // Tag the blue dot with a touch ID
     Cmd_Button(DWIDTH / 10 - 10, DHEIGHT *2/ 3, 80, 60, 28, 0,"Data");
 
@@ -151,7 +152,7 @@ void display_fuel(unsigned char DotSize,const char* str,const char* str2, const 
     Send_CMD(DISPLAY());                     //End the display list
     Send_CMD(CMD_SWAP);                      //Swap commands into RAM
     UpdateFIFO();                            // Trigger the CoProcessor to start processing the FIFO
-    //Wait4CoProFIFOEmpty();
+    Wait4CoProFIFOEmpty();
     //delay_ms(10);
 }
 

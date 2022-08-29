@@ -10,6 +10,7 @@
 #include <header/Uart.h>
 #include <header/Uart7.h>
 
+#include <header/debugging_h.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -119,12 +120,10 @@ void Timer0_clear_irq(void)
     TIMER0_ICR_R = TIMER_ICR_TATOCINT;
 }
 
+//#pragma DATA_SECTION(timer0_handler, ".vtable")
 void timer0_handler(void)   //convert receive can data to char ptr for display ISR
 {
-
-    //LED_OnOff(1);
     //    GPIO_PORTD_DEN_R     = (GPIO_PORTD_DEN_R &(~(unsigned long)0xFF))| 0x03;
-
     TIMER0_ICR_R = TIMER_ICR_TATOCINT; //clear the interrupt request
 
     CANDATA_T isr1CanData[MAX_ID_NUM];
@@ -143,43 +142,35 @@ void timer0_handler(void)   //convert receive can data to char ptr for display I
     else
     {
         //LED_OnOff(1);
+#if (debugging == 0)
         uint32_t a2_1=*(short*)(&(isr1CanData[2].CANDATA[2])); // real car
-        uint32_t a2_2= (uint32_t)((a2_1>>8)&0x000000ff);// debugging
+#endif
 
+#if (debugging == 1)
+        uint32_t a2_1=*(short*)(&(isr1CanData[2].CANDATA[0]));   // debugging
+#endif
         static char DD1[2]={0,};
-        // Real car
-//                DD1[0]=((char)a2_1>>4);     //a2_1 == 0x0000.1234 -> char a2_1 == 0x1234 -> >>4 == 0x0012
-//                DD1[1]=((char)a2_1 & 0x0f); //a2_1 == 0x0000.1234 -> char a2_1 == 0x1234 -> &0x0f == 0x0034
 
-
-        // Debugging
-        DD1[0]=((char)a2_2>>4);     //a2_2 == 0x0000.1234 -> char a2_2 == 0x1234 -> >>4 == 0x0012
-        DD1[1]=((char)a2_2 & 0x0f); //a2_2 == 0x0000.1234 -> char a2_2 == 0x1234 -> &0x0f == 0x0034
-
+        //         Real car
+        DD1[0]=((char)a2_1>>4);     //a2_1 == 0x0000.1234 -> char a2_1 == 0x1234 -> >>4 == 0x0012
+        DD1[1]=((char)a2_1 & 0x0f); //a2_1 == 0x0000.1234 -> char a2_1 == 0x1234 -> &0x0f == 0x0034
 
         speed=DD1[0]*16+DD1[1]; //hex to decimal
-        // °æ°è¼± //
 
-//        Engine_interval += speed;
-//        Mission_interval += speed;
-//        Break_interval += speed;
-        Engine_interval = speed + Engine_interval;
-        Mission_interval = speed + Mission_interval;
-        Break_interval = speed + Break_interval;
+        Engine_interval += speed;
+        Mission_interval += speed;
+        Break_interval += speed;
 
-
-        Engine_distance2 = Engine_interval * 2.7778e-4;
-        Mission_distance2 = Mission_interval * 2.7778e-5;
+        Engine_distance2 = Engine_interval * 2.7778e-6;
+        Mission_distance2 = Mission_interval * 2.7778e-6;
         Break_distance2 = Break_interval * 2.7778e-6;
     }
-    //flash¿¡ ÀúÀåÇÒ¶§ ÇÊ¿äÇÑ º¯¼ö
+    //flash
     memcpy(Engine_distance_data,&Engine_interval,sizeof(Engine_distance_data));
     memcpy(Mission_distance_data,&Mission_interval,sizeof(Mission_distance_data));
     memcpy(Break_distance_data,&Break_interval,sizeof(Break_distance_data));
 
-
-
-    // °Å¸® °è»ê¿¡ ÇÊ¿äÇÑ º¯¼ö
+    // å ì‹ ëªŒì˜™ å ì™ì˜™è½…ï¿½ å ì‹­ìš¸ì˜™å ì™ì˜™ å ì™ì˜™å ì™ì˜™
     Engine_int_distance = (int)Engine_distance2;
     Mission_int_distance = (int)Mission_distance2;
     Break_int_distance= (int)Break_distance2;
@@ -214,108 +205,17 @@ void timer2_handler(void)   //check gear, speed, rpm and enter hibernate ISR
     }
     else
     {
-        flash_count=0;
+        //flash_count=0;
         hib_count = 0;
     }
-//    sec0++;
-//    if( (sec0%3600) == 0)
-//    {
-//        uart_7_tx_str("H\r\n");
-//    }
+    sec0++;
+    if( (sec0%600) == 0)
+    {
+        uart_7_tx_str("H\r\n");
+    }
 }
 
 
-
-
-
-void ascii_distance_array(void)
-{
-    /////////////////////////////////////////////0//////100000///////////////////////////////////////////////////////////
-    if (
-            (int_distance / hundread_thousand)==0
-    )
-        distance_array[0] = 0x20;
-
-    else distance_array[0] = int_distance / hundread_thousand +'0';
-    /////////////////////////////////////////////1//////010000///////////////////////////////////////////////////////////
-    //if ((int_distance % hundread_thousand) / ten_thousand ==0)  distance_array[1] = 0x20;
-    if
-    (
-            (int_distance / hundread_thousand == 0)   &&
-            ((int_distance % hundread_thousand) / ten_thousand ==0)
-    )    distance_array[1] = 0x20;
-    /*
-            else if
-            (      ((int_distance % hundread_thousand) / ten_thousand == 0) &&
-                    ((int_distance / hundread_thousand >0)     )
-            )   distance_array[1]='0';
-     */
-    else distance_array[1] = (int_distance % hundread_thousand) / ten_thousand +'0';
-    /////////////////////////////////////////////2//////001000///////////////////////////////////////////////////////////
-    //if (((int_distance % hundread_thousand) % ten_thousand) / thousand ==0)  distance_array[2] = 0x20;
-    if
-    (
-            (int_distance / hundread_thousand == 0) &&
-            ((int_distance % hundread_thousand) / ten_thousand ==0) &&
-            (((int_distance % hundread_thousand) % ten_thousand) / thousand  ==0)
-    )    distance_array[2] = 0x20;
-    /*
-            else if
-            (      (((int_distance % hundread_thousand) % ten_thousand) / thousand == 0) &&
-                    (((int_distance % hundread_thousand) / ten_thousand  >0)     )
-            )   distance_array[2]='0';
-     */
-    else distance_array[2] = ((int_distance % hundread_thousand) % ten_thousand ) / thousand+'0';
-
-    /////////////////////////////////////////////3//////000100///////////////////////////////////////////////////////////
-    //    if ((((int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread==0)  distance_array[3] = 0x20;
-    if
-    (
-            (int_distance / hundread_thousand == 0) &&
-            ((int_distance % hundread_thousand) / ten_thousand ==0) &&
-            (((int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-            ((((int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)
-    )    distance_array[3] = 0x20;
-    /*
-        else if
-        (      (((((int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread)== 0) &&
-                (((((int_distance % hundread_thousand) % ten_thousand) / thousand )  >0)     )
-        )    distance_array[3]='0';
-     */
-    else distance_array[3] = (((int_distance % hundread_thousand) % ten_thousand ) % thousand) /hundread +'0';
-    /////////////////////////////////////////////4//////000010///////////////////////////////////////////////////////////
-    if (
-            (int_distance / hundread_thousand == 0) &&
-            ((int_distance % hundread_thousand) / ten_thousand ==0) &&
-            (((int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-            ((((int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)   &&
-            (((((int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)
-    )
-        distance_array[4] = 0x20;
-    /*
-        else if
-        (
-                (((((int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)  &&
-                ((((int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread > 0)
-        )
-                distance_array[4] = '0';
-     */
-    else distance_array[4] = ((((int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) /ten+'0';
-
-    /////////////////////////////////////////////5//////000001///////////////////////////////////////////////////////////
-    /*
-        if
-        ((((((int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one==0)
-            distance_array[5] = '0';
-
-        else if
-        (      ((((((int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one== 0) &&
-                (((((int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten >0)     )
-            distance_array[5]='0';
-     */
-    distance_array[5] = (((((int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) %ten) /one+'0';
-
-}
 
 void ascii_Engine_distance_array(void)
 {

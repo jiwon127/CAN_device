@@ -61,7 +61,7 @@ void into_hibernate(int flag)
 {
     if (flag == 1)
     {
-        LCD_OnOff(0);
+//        LCD_OnOff(0);
 
         //uart clk
         SYSCTL_RCGCUART_R  &= ~SYSCTL_RCGCUART_R7;     //UART7 clk Off(1<<7)

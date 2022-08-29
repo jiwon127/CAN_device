@@ -20,7 +20,6 @@ void timer0_handler(void);
 void timer2_handler(void);
 void init_interval(uint8_t data);
 
-void ascii_distance_array(void);
 void ascii_Engine_distance_array(void);
 void ascii_Mission_distance_array(void);
 void ascii_Break_distance_array(void);

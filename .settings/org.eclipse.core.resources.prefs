@@ -75,4 +75,5 @@ encoding//Release/subdir_rules.mk=UTF-8
 encoding//Release/subdir_vars.mk=UTF-8
 encoding//header/Can_init.c=UTF-8
 encoding//header/eve2_lib.c=UTF-8
+encoding//header/timer.c=UTF-8
 encoding/capstone_application.c=UTF-8

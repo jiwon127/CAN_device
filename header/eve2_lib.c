@@ -203,13 +203,6 @@ void StartCoProTransfer(uint32_t address, uint8_t reading)
   }
 }
 
-
-
-
-
-
-
-
 void Send_CMD(uint32_t data)
 {
   spi_write_32(FifoWriteLocation + RAM_CMD, data); // write the command at the globally tracked "write pointer" for the FIFO
