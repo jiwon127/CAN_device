@@ -81,16 +81,16 @@ void timer0test_handler(void)   //convert receive can data to char ptr for displ
         Mission_interval += speed;
         Break_interval += speed;
 
-        Engine_distance2 = Engine_interval * 2.7778e-5;
-        Mission_distance2 = Mission_interval * 2.7778e-5;
-        Break_distance2 = Break_interval * 2.7778e-5;
+        Engine_distance2 = Engine_interval * 2.7778e-6;
+        Mission_distance2 = Mission_interval * 2.7778e-6;
+        Break_distance2 = Break_interval * 2.7778e-6;
     }
     //flash
     memcpy(Engine_distance_data,&Engine_interval,sizeof(Engine_distance_data));
     memcpy(Mission_distance_data,&Mission_interval,sizeof(Mission_distance_data));
     memcpy(Break_distance_data,&Break_interval,sizeof(Break_distance_data));
 
-    // �뜝�떊紐뚯삕 �뜝�룞�삕饔낉옙 �뜝�떗�슱�삕�뜝�룞�삕 �뜝�룞�삕�뜝�룞�삕
+    // 占쎈쐻占쎈뻿筌뤿슣�굲 占쎈쐻占쎈짗占쎌굲耀붾굢�삕 占쎈쐻占쎈뼏占쎌뒻占쎌굲占쎈쐻占쎈짗占쎌굲 占쎈쐻占쎈짗占쎌굲占쎈쐻占쎈짗占쎌굲
     Engine_int_distance = (int)Engine_distance2;
     Mission_int_distance = (int)Mission_distance2;
     Break_int_distance= (int)Break_distance2;
