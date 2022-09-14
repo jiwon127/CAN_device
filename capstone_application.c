@@ -28,6 +28,7 @@
 #include <tm4c123gh6pm.h>
 
 #include <header/debugging_h.h>
+#include <header/FlashtoRAMtest.h>
 
 #define DEBUG_TRANSMISSION_CAN_ID 0x3b
 #define DEBUG_RPM_CAN_ID 0x3cb
@@ -271,7 +272,7 @@ int main()
             }
             break;
         case 7:         //Back button
-            if (!pressed)   point_display = 1;  //display_fuel_back
+            if (!pressed)   point_display = 1;  //display_fuel_ba ck
             break;
         case 8:         // Yes button
             if (!pressed)   yes_flag = 1;

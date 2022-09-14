@@ -40,6 +40,16 @@ void gpioinit(void)
     // ㄴ 여기까지는 LCD on
 }
 
+void InitHibernationGPIO(void)
+{
+    SYSCTL_RCGCGPIO_R    = (SYSCTL_RCGCGPIO_R&(~(unsigned long)SYSCTL_RCGC2_GPIOF)) | SYSCTL_RCGC2_GPIOF;
+
+    GPIO_PORTF_DIR_R     = (GPIO_PORTF_DIR_R&(~(unsigned long)0xFF)) | 0x00;
+
+    GPIO_PORTF_AFSEL_R   = (GPIO_PORTF_AFSEL_R&(~(unsigned long)0xFF));
+
+    GPIO_PORTF_DEN_R     = (GPIO_PORTF_DEN_R &(~(unsigned long)0xFF))| 0x8;
+}
 
 void LCD_OnOff(int onOff) // pin = 1 => LCD Power On, pin = 0 => LCD Power Off
 {

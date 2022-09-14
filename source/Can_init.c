@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <tm4c123gh6pm.h>
+#include <time.h>
 
 extern volatile unsigned int IRQ_A1,IRQ_A2, IRQ_B1, IRQ_B2;
 extern volatile uint32_t irq_status,can_flag;
@@ -27,8 +28,12 @@ extern volatile uint32_t i;
 extern volatile uint32_t isr_flag ;
 extern int can_check;
 
+uint32_t CANTick;
+clock_t CANstart, CANend;
+
 void can1_handler(void)
 {
+//    CANstart = clock();
     int i=0;
     int bitCnt = 1;
     for (i=0; i<MAX_ID_NUM; i++)
@@ -37,7 +42,6 @@ void can1_handler(void)
         {
             CAN1_IF1MCTL_R = (CAN1_IF1MCTL_R&(~(unsigned long)CAN_IF1MCTL_INTPND));
             CAN1_IF1CMSK_R =  CAN_IF1CMSK_CLRINTPND | CAN_IF1CMSK_NEWDAT | CAN_IF1CMSK_DATAA | CAN_IF1CMSK_DATAB ;
-
             CAN1_IF1CRQ_R  = (CAN1_IF1CRQ_R&(~(unsigned long)CAN_IF1CRQ_MNUM_M)) | (i+1);
 
             while (1)
@@ -45,7 +49,6 @@ void can1_handler(void)
                 if (!(CAN1_IF1CRQ_R & CAN_IF1CRQ_BUSY))    //If not busy
                     break;
             }
-
             (*(short *)(&(globalCanData[i].CANDATA[0])) ) = CAN1_IF1DA1_R;
             (*(short *)(&(globalCanData[i].CANDATA[2])) ) = CAN1_IF1DA2_R;
             (*(short *)(&(globalCanData[i].CANDATA[4])) ) = CAN1_IF1DB1_R;
@@ -55,17 +58,19 @@ void can1_handler(void)
         bitCnt = bitCnt << 1;
     }
     irq_status = CAN1_STS_R;
+//    CANend = clock();
+//    CANTick = CANend-CANstart;
 }
 
 
 void can_init(int bps, int irq)
 {
     SYSCTL_RCGCCAN_R   = (SYSCTL_RCGCCAN_R&(~(unsigned long)(SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1)))
-                                                    | (SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1);
+                                                            | (SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1);
     //CAN0, 1 CLOCK ON(1,0 <<1) == Enable CAN0, CAN1
 
     SYSCTL_RCGCGPIO_R  = (SYSCTL_RCGCGPIO_R&(~(unsigned long)SYSCTL_RCGCGPIO_R0))
-                                                    | SYSCTL_RCGCGPIO_R0;
+                                                            | SYSCTL_RCGCGPIO_R0;
     //GPIO PORT A CLOCK ON
 
     GPIO_PORTA_DEN_R  = (GPIO_PORTA_DEN_R&(~(unsigned long)0x03)) | 0x01|0x02;

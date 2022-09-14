@@ -13,6 +13,6 @@ void Led(int pin);
 void gpioinit(void);
 void LCD_OnOff(int onOff);
 void LED_OnOff(int On1Off2);
-
+void InitHibernationGPIO(void);
 
 #endif /* GPIO_LED_H_ */

@@ -13,24 +13,25 @@ ORDERED_OBJS += \
 "./capstone_application.obj" \
 "./tm4c123gh6pm_startup_ccs.obj" \
 "./ex_/test_1.obj" \
-"./header/Can_init.obj" \
-"./header/Delay.obj" \
-"./header/FT81X_LCD.obj" \
-"./header/Flash_memory.obj" \
-"./header/Gpio_led.obj" \
-"./header/Hibernation.obj" \
-"./header/PMOS_LCD_Control.obj" \
-"./header/SaveDistance.obj" \
-"./header/Spi_lcd.obj" \
-"./header/Sysctl_clk.obj" \
-"./header/Uart.obj" \
-"./header/Uart7.obj" \
-"./header/WakePinData.obj" \
-"./header/asm.obj" \
-"./header/eve2_display_lib.obj" \
-"./header/eve2_lib.obj" \
-"./header/my_eve2_lib.obj" \
-"./header/timer.obj" \
+"./source/Can_init.obj" \
+"./source/Delay.obj" \
+"./source/FT81X_LCD.obj" \
+"./source/Flash_memory.obj" \
+"./source/FlashtoRAMtest.obj" \
+"./source/Gpio_led.obj" \
+"./source/Hibernation.obj" \
+"./source/PMOS_LCD_Control.obj" \
+"./source/SaveDistance.obj" \
+"./source/Spi_lcd.obj" \
+"./source/Sysctl_clk.obj" \
+"./source/Uart.obj" \
+"./source/Uart7.obj" \
+"./source/WakePinData.obj" \
+"./source/asm.obj" \
+"./source/eve2_display_lib.obj" \
+"./source/eve2_lib.obj" \
+"./source/my_eve2_lib.obj" \
+"./source/timer.obj" \
 "../tm4c123gh6pm.cmd" \
 $(GEN_CMDS__FLAG) \
 -llibc.a \
@@ -44,10 +45,10 @@ RMDIR := RMDIR /S/Q
 -include sources.mk
 -include subdir_vars.mk
 -include ex_/subdir_vars.mk
--include header/subdir_vars.mk
+-include source/subdir_vars.mk
 -include subdir_rules.mk
 -include ex_/subdir_rules.mk
--include header/subdir_rules.mk
+-include source/subdir_rules.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -178,8 +179,8 @@ all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "capstone_application.obj" "tm4c123gh6pm_startup_ccs.obj" "ex_\test_1.obj" "header\Can_init.obj" "header\Delay.obj" "header\FT81X_LCD.obj" "header\Flash_memory.obj" "header\Gpio_led.obj" "header\Hibernation.obj" "header\PMOS_LCD_Control.obj" "header\SaveDistance.obj" "header\Spi_lcd.obj" "header\Sysctl_clk.obj" "header\Uart.obj" "header\Uart7.obj" "header\WakePinData.obj" "header\asm.obj" "header\eve2_display_lib.obj" "header\eve2_lib.obj" "header\my_eve2_lib.obj" "header\timer.obj" 
-	-$(RM) "capstone_application.d" "tm4c123gh6pm_startup_ccs.d" "ex_\test_1.d" "header\Can_init.d" "header\Delay.d" "header\FT81X_LCD.d" "header\Flash_memory.d" "header\Gpio_led.d" "header\Hibernation.d" "header\PMOS_LCD_Control.d" "header\SaveDistance.d" "header\Spi_lcd.d" "header\Sysctl_clk.d" "header\Uart.d" "header\Uart7.d" "header\WakePinData.d" "header\asm.d" "header\eve2_display_lib.d" "header\eve2_lib.d" "header\my_eve2_lib.d" "header\timer.d" 
+	-$(RM) "capstone_application.obj" "tm4c123gh6pm_startup_ccs.obj" "ex_\test_1.obj" "source\Can_init.obj" "source\Delay.obj" "source\FT81X_LCD.obj" "source\Flash_memory.obj" "source\FlashtoRAMtest.obj" "source\Gpio_led.obj" "source\Hibernation.obj" "source\PMOS_LCD_Control.obj" "source\SaveDistance.obj" "source\Spi_lcd.obj" "source\Sysctl_clk.obj" "source\Uart.obj" "source\Uart7.obj" "source\WakePinData.obj" "source\asm.obj" "source\eve2_display_lib.obj" "source\eve2_lib.obj" "source\my_eve2_lib.obj" "source\timer.obj" 
+	-$(RM) "capstone_application.d" "tm4c123gh6pm_startup_ccs.d" "ex_\test_1.d" "source\Can_init.d" "source\Delay.d" "source\FT81X_LCD.d" "source\Flash_memory.d" "source\FlashtoRAMtest.d" "source\Gpio_led.d" "source\Hibernation.d" "source\PMOS_LCD_Control.d" "source\SaveDistance.d" "source\Spi_lcd.d" "source\Sysctl_clk.d" "source\Uart.d" "source\Uart7.d" "source\WakePinData.d" "source\asm.d" "source\eve2_display_lib.d" "source\eve2_lib.d" "source\my_eve2_lib.d" "source\timer.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

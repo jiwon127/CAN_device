@@ -1,8 +1,13 @@
 eclipse.preferences.version=1
 encoding//Debug/ex_/subdir_rules.mk=UTF-8
+encoding//Debug/ex_/subdir_vars.mk=UTF-8
 encoding//Debug/header/subdir_rules.mk=UTF-8
 encoding//Debug/makefile=UTF-8
+encoding//Debug/source/subdir_rules.mk=UTF-8
+encoding//Debug/source/subdir_vars.mk=UTF-8
+encoding//Debug/sources.mk=UTF-8
 encoding//Debug/subdir_rules.mk=UTF-8
+encoding//Debug/subdir_vars.mk=UTF-8
 encoding//source/Can_init.c=UTF-8
 encoding//source/FlashtoRAMtest.c=UTF-8
 encoding//source/eve2_lib.c=UTF-8
