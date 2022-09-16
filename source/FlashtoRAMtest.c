@@ -91,9 +91,9 @@ void timer0test_handler(void)   //convert receive can data to char ptr for displ
         Mission_interval += speed;
         Break_interval += speed;
 
-        Engine_distance2 = Engine_interval * 2.7778e-3;
-        Mission_distance2 = Mission_interval * 2.7778e-4;
-        Break_distance2 = Break_interval * 2.7778e-3;
+        Engine_distance2 = Engine_interval * 2.7778e-6;
+        Mission_distance2 = Mission_interval * 2.7778e-6;
+        Break_distance2 = Break_interval * 2.7778e-6;
     }
     //flash
     memcpy(Engine_distance_data,&Engine_interval,sizeof(Engine_distance_data));
@@ -382,4 +382,88 @@ void ascii_Break_distance_array(void)
      */
     else Break_distance_array[5] = (((((Break_int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) %ten) /one+'0';
 
+}
+
+void can_to_spi_rpm(char* (*a),unsigned int arg1)
+{
+
+    uint32_t a2_1=arg1;   //CAN1_IF1DA2_R
+    uint32_t a2_2=(uint32_t)((a2_1>>8)&0x000000ff);  //
+
+    static char DB1[2]={0,};
+
+    DB1[0]=((char)a2_2>>4);
+    DB1[1]=((char)a2_2 & 0x0f);
+
+    DB1[0]=DB1[0]+'0';
+
+    static char DB2[8]={'0','0','0','0','R','P','M','\0'};
+    DB2[0]=DB1[0];
+
+    *a=DB2;
+}
+
+void can_to_spi_acceleration(char* (*a),unsigned int arg1)
+{
+    uint32_t a2_1=arg1;   //real car  CAN1_IF1DA2_R
+    uint32_t a2_2=(uint32_t)((a2_1>>8)&0x000000ff);  //0x2B -> debugging
+
+    static char DD1[2]={0,};
+
+#if (debugging == 0)
+    //Real code
+    DD1[0]=((char)a2_1>>4);
+    DD1[1]=((char)a2_1 & 0x0f);
+#endif
+
+#if (debugging == 1)
+    // Debugging
+    DD1[0]=((char)a2_2>>4);
+    DD1[1]=((char)a2_2 & 0x0f);
+#endif
+
+    static char DD2[8]={0,0,0,'K','m','/','h','\0'};
+
+    int i;
+
+    i=DD1[0]*16+DD1[1];
+
+    if((i/100)==0) DD2[0]=0x20;       else DD2[0]=i/100 + '0';
+    if((i%100)/10 ==0) DD2[1]=0x20;   else DD2[1]=(i%100)/10 + '0';
+
+    DD2[2]=((i%100)%10) + '0';
+
+    *a=DD2;
+}
+
+void can_to_spi_transmission(char* (*a),unsigned int arg1)
+{
+    uint32_t a1_1=arg1;   //CAN1_IF1DA1_R
+    uint32_t a1_2=(a1_1>>8)&0x000000ff;  //0x01
+
+    static char DC1[2]={0,};
+
+    DC1[0]=((char)a1_2>>4);
+    DC1[1]=((char)a1_2 & 0x0f);
+
+    static char DC2[2]={'0','\0'};
+
+    switch(DC1[1]) {
+    case 5 :
+        DC2[0]='D';
+        break;
+    case 6 :
+        DC2[0]='N';
+        break;
+    case 7 :
+        DC2[0]='R';
+        break;
+    case 0 :
+        DC2[0]='P';
+        break;
+    default:
+        DC2[0]='P';
+    }
+
+    *a=DC2;
 }

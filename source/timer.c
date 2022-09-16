@@ -55,11 +55,10 @@ extern uint32_t Break_distance_data[sizeof(Break_distance2)];
 //tt */
 extern volatile uint32_t isr_flag ;
 
+extern uint32_t GetTickCheck;
+
 void Timer0_init(uint32_t period)
 {
-    //TIMER0_CTL_R &= ~TIMER_CTL_TAEN;
-    //TIMER2_CTL_R &= ~TIMER_CTL_TAEN;
-
     SYSCTL_RCGCTIMER_R |= SYSCTL_RCGCTIMER_R0 ;
     //Enable timer0 clock gating
     TIMER0_CTL_R &= ~TIMER_CTL_TAEN;
@@ -105,6 +104,23 @@ void Timer2_init(uint32_t period)
     TIMER2_CTL_R = 0x01; // Enable Timer2A.
 }
 
+void Timer3_init(uint32_t period)
+{
+    SYSCTL_RCGCTIMER_R |= 0x08; // Timer3
+    TIMER3_CTL_R &= ~0x01;  // disable Timer3A during setup
+    TIMER3_CFG_R = 0x00; // 32-bit mode
+    TIMER3_TAMR_R = 0x02; // Periodic timer mode
+    TIMER3_TAILR_R = period-1; // reload value
+    TIMER3_TAPR_R = 0; // prescale (0: 1)
+    TIMER3_ICR_R = 0x01; // TATOCINT, clear timer3A Time out interrupt
+    TIMER3_IMR_R = 0x01; // TATOIM, Time-Out Int. Mask
+
+    // Timer 3A vector number: 51, Interrupt number:23
+    NVIC_PRI8_R = 0x00000000; // pri 4
+    NVIC_EN1_R |= 0x08; // IRQ
+
+    TIMER3_CTL_R = 0x01; // Enable Timer2A.
+}
 void Timer0_disable()
 {
     TIMER0_CTL_R &= ~0x01;  // disable Timer2A during setup
@@ -120,70 +136,10 @@ void Timer0_clear_irq(void)
     TIMER0_ICR_R = TIMER_ICR_TATOCINT;
 }
 
-//#pragma DATA_SECTION(timer0_handler, ".vtable")
-//void timer0_handler(void)   //convert receive can data to char ptr for display ISR
-//{
-//    //    GPIO_PORTD_DEN_R     = (GPIO_PORTD_DEN_R &(~(unsigned long)0xFF))| 0x03;
-//    TIMER0_ICR_R = TIMER_ICR_TATOCINT; //clear the interrupt request
-//
-//    CANDATA_T isr1CanData[MAX_ID_NUM];
-//    int i;
-//
-//    NVIC_EN1_R = 0;         //IRQ disable
-//    memcpy(isr1CanData, globalCanData, sizeof (isr1CanData));
-//    for (i=0;i<MAX_ID_NUM;i++)  globalCanData[i].ifValid = 0;
-//    NVIC_EN1_R = 1<<8;      //IRQ enable
-//
-//    if (isr1CanData[0].ifValid == 0)
-//    {
-//        //uart_7_tx_str("In tim0 irq no packet from can\r\n");
-//        ;
-//    }
-//    else
-//    {
-//        //LED_OnOff(1);
-//#if (debugging == 0)
-//        uint32_t a2_1=*(short*)(&(isr1CanData[2].CANDATA[2])); // real car
-//#endif
-//
-//#if (debugging == 1)
-//        uint32_t a2_1=*(short*)(&(isr1CanData[2].CANDATA[0]));   // debugging
-//#endif
-//        static char DD1[2]={0,};
-//
-//        //         Real car
-//        DD1[0]=((char)a2_1>>4);     //a2_1 == 0x0000.1234 -> char a2_1 == 0x1234 -> >>4 == 0x0012
-//        DD1[1]=((char)a2_1 & 0x0f); //a2_1 == 0x0000.1234 -> char a2_1 == 0x1234 -> &0x0f == 0x0034
-//
-//        speed=DD1[0]*16+DD1[1]; //hex to decimal
-//
-//        Engine_interval += speed;
-//        Mission_interval += speed;
-//        Break_interval += speed;
-//
-//        Engine_distance2 = Engine_interval * 2.7778e-6;
-//        Mission_distance2 = Mission_interval * 2.7778e-6;
-//        Break_distance2 = Break_interval * 2.7778e-6;
-//    }
-//    //flash
-//    memcpy(Engine_distance_data,&Engine_interval,sizeof(Engine_distance_data));
-//    memcpy(Mission_distance_data,&Mission_interval,sizeof(Mission_distance_data));
-//    memcpy(Break_distance_data,&Break_interval,sizeof(Break_distance_data));
-//
-//    //
-//    Engine_int_distance = (int)Engine_distance2;
-//    Mission_int_distance = (int)Mission_distance2;
-//    Break_int_distance= (int)Break_distance2;
-//
-//    //LED_OnOff(2);
-//    //    GPIO_PORTD_DEN_R     = (GPIO_PORTD_DEN_R &(~(unsigned long)0xFF))| 0x01;
-//}
-
 void timer2_handler(void)   //check gear, speed, rpm and enter hibernate ISR
 {
     TIMER2_ICR_R = TIMER_ICR_TATOCINT; //clear the interrupt request
     CANDATA_T isr2CanData[MAX_ID_NUM];
-    char secarr[10] = {0, };
 
     int i;
     NVIC_EN1_R = 0;       //IRQ disable
@@ -208,286 +164,18 @@ void timer2_handler(void)   //check gear, speed, rpm and enter hibernate ISR
         //flash_count=0;
         hib_count = 0;
     }
+#if (debugging == 1)
     sec0++;
-    if( (sec0%600) == 0)
+    if( (sec0%1200) == 0)
     {
-        uart_7_tx_str("H\r\n");
+        uart_7_tx_str("e\r\n");
     }
+#endif
 }
 
+void timer3_handler(void)
+{
+    TIMER3_ICR_R = TIMER_ICR_TATOCINT;
+    GetTickCheck++;
+}
 
-
-//void ascii_Engine_distance_array(void)
-//{
-//    memset(Engine_distance_array,0,sizeof(Engine_distance_array));
-//    /////////////////////////////////////////////0//////100000///////////////////////////////////////////////////////////
-//    if ( ( Engine_int_distance / hundread_thousand ) == 0 )
-//        Engine_distance_array[0] = 0x20;
-//
-//    else Engine_distance_array[0] = Engine_int_distance / hundread_thousand +'0';
-//
-//    /////////////////////////////////////////////1//////010000///////////////////////////////////////////////////////////
-//    //if ((Engine_int_distance % hundread_thousand) / ten_thousand ==0)  Engine_distance_data[1] = 0x20;
-//    if
-//    (
-//            (Engine_int_distance / hundread_thousand == 0)   &&
-//            ((Engine_int_distance % hundread_thousand) / ten_thousand == 0 )
-//    )    Engine_distance_array[1] = 0x20;
-//    /*
-//            else if
-//            (      ((Engine_int_distance % hundread_thousand) / ten_thousand == 0) &&
-//                    ((Engine_int_distance / hundread_thousand >0)     )
-//            )   Engine_distance_data[1]='0';
-//     */
-//    else Engine_distance_array[1] = (Engine_int_distance % hundread_thousand) / ten_thousand +'0';
-//
-//    /////////////////////////////////////////////2//////001000///////////////////////////////////////////////////////////
-//    //if (((Engine_int_distance % hundread_thousand) % ten_thousand) / thousand ==0)  Engine_distance_data[2] = 0x20;
-//    if
-//    (
-//            (Engine_int_distance / hundread_thousand == 0) &&
-//            ((Engine_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Engine_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0)
-//    )    Engine_distance_array[2] = 0x20;
-//    /*
-//            else if
-//            (      (((Engine_int_distance % hundread_thousand) % ten_thousand) / thousand == 0) &&
-//                    (((Engine_int_distance % hundread_thousand) / ten_thousand  >0)     )
-//            )   Engine_distance_data[2]='0';
-//     */
-//    else Engine_distance_array[2] = ((Engine_int_distance % hundread_thousand) % ten_thousand ) / thousand+'0';
-//
-//
-//    /////////////////////////////////////////////3//////000100///////////////////////////////////////////////////////////
-//    //    if ((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread==0)  Engine_distance_data[3] = 0x20;
-//    if
-//    (
-//            (Engine_int_distance / hundread_thousand == 0) &&
-//            ((Engine_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Engine_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-//            ((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)
-//    )    Engine_distance_array[3] = 0x20;
-//    /*
-//        else if
-//        (      (((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread)== 0) &&
-//                (((((Engine_int_distance % hundread_thousand) % ten_thousand) / thousand )  >0)     )
-//        )    Engine_distance_data[3]='0';
-//     */
-//    else Engine_distance_array[3] = (((Engine_int_distance % hundread_thousand) % ten_thousand ) % thousand) /hundread +'0';
-//
-//    /////////////////////////////////////////////4//////000010///////////////////////////////////////////////////////////
-//    if (
-//            (Engine_int_distance / hundread_thousand == 0) &&
-//            ((Engine_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Engine_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-//            ((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)   &&
-//            (((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)
-//    )
-//        Engine_distance_array[4] = 0x20;
-//    /*
-//        else if
-//        (
-//                (((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)  &&
-//                ((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread > 0)
-//        )
-//                Engine_distance_data[4] = '0';
-//     */
-//    else Engine_distance_array[4] = ((((Engine_int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) /ten+'0';
-//
-//
-//    /////////////////////////////////////////////5//////000001///////////////////////////////////////////////////////////
-//    /*
-//        if
-//        ((((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one==0)
-//            Engine_distance_data[5] = '0';
-//
-//        else if
-//        (      ((((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one== 0) &&
-//                (((((Engine_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten >0)     )
-//            Engine_distance_data[5]='0';
-//     */
-//    Engine_distance_array[5] = (((((Engine_int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) %ten) /one+'0';
-//
-//}
-//
-//void ascii_Mission_distance_array(void)
-//{
-//    memset(Mission_distance_array,0,sizeof(Mission_distance_array));
-//
-//    /////////////////////////////////////////////0//////100000///////////////////////////////////////////////////////////
-//    if (
-//            (Mission_int_distance / hundread_thousand)==0
-//    )
-//        Mission_distance_array[0] = 0x20;
-//
-//    else Mission_distance_array[0] = Mission_int_distance / hundread_thousand +'0';
-//    /////////////////////////////////////////////1//////010000///////////////////////////////////////////////////////////
-//    //if ((Mission_int_distance % hundread_thousand) / ten_thousand ==0)  Mission_distance_array[1] = 0x20;
-//    if
-//    (
-//            (Mission_int_distance / hundread_thousand == 0)   &&
-//            ((Mission_int_distance % hundread_thousand) / ten_thousand ==0)
-//    )    Mission_distance_array[1] = 0x20;
-//    /*
-//            else if
-//            (      ((Mission_int_distance % hundread_thousand) / ten_thousand == 0) &&
-//                    ((Mission_int_distance / hundread_thousand >0)     )
-//            )   Mission_distance_array[1]='0';
-//     */
-//    else Mission_distance_array[1] = (Mission_int_distance % hundread_thousand) / ten_thousand +'0';
-//    /////////////////////////////////////////////2//////001000///////////////////////////////////////////////////////////
-//    //if (((Mission_int_distance % hundread_thousand) % ten_thousand) / thousand ==0)  Mission_distance_array[2] = 0x20;
-//    if
-//    (
-//            (Mission_int_distance / hundread_thousand == 0) &&
-//            ((Mission_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Mission_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0)
-//    )    Mission_distance_array[2] = 0x20;
-//    /*
-//            else if
-//            (      (((Mission_int_distance % hundread_thousand) % ten_thousand) / thousand == 0) &&
-//                    (((Mission_int_distance % hundread_thousand) / ten_thousand  >0)     )
-//            )   Mission_distance_array[2]='0';
-//     */
-//    else Mission_distance_array[2] = ((Mission_int_distance % hundread_thousand) % ten_thousand ) / thousand+'0';
-//
-//    /////////////////////////////////////////////3//////000100///////////////////////////////////////////////////////////
-//    //    if ((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread==0)  Mission_distance_array[3] = 0x20;
-//    if
-//    (
-//            (Mission_int_distance / hundread_thousand == 0) &&
-//            ((Mission_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Mission_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-//            ((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)
-//    )    Mission_distance_array[3] = 0x20;
-//    /*
-//        else if
-//        (      (((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread)== 0) &&
-//                (((((Mission_int_distance % hundread_thousand) % ten_thousand) / thousand )  >0)     )
-//        )    Mission_distance_array[3]='0';
-//     */
-//    else Mission_distance_array[3] = (((Mission_int_distance % hundread_thousand) % ten_thousand ) % thousand) /hundread +'0';
-//    /////////////////////////////////////////////4//////000010///////////////////////////////////////////////////////////
-//    if (
-//            (Mission_int_distance / hundread_thousand == 0) &&
-//            ((Mission_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Mission_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-//            ((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)   &&
-//            (((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)
-//    )
-//        Mission_distance_array[4] = 0x20;
-//    /*
-//        else if
-//        (
-//                (((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)  &&
-//                ((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread > 0)
-//        )
-//                Mission_distance_array[4] = '0';
-//     */
-//    else Mission_distance_array[4] = ((((Mission_int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) /ten+'0';
-//
-//    /////////////////////////////////////////////5//////000001///////////////////////////////////////////////////////////
-//    /*
-//        if
-//        ((((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one==0)
-//            Mission_distance_array[5] = '0';
-//
-//        else if
-//        (      ((((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one== 0) &&
-//                (((((Mission_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten >0)     )
-//            Mission_distance_array[5]='0';
-//     */
-//    Mission_distance_array[5] = (((((Mission_int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) %ten) /one+'0';
-//
-//}
-//
-//void ascii_Break_distance_array(void)
-//{
-//    memset(Break_distance_array,0,sizeof(Break_distance_array));
-//
-//    /////////////////////////////////////////////0//////100000///////////////////////////////////////////////////////////
-//    if (
-//            (Break_int_distance / hundread_thousand)==0
-//    )
-//        Break_distance_array[0] = 0x20;
-//
-//    else Break_distance_array[0] = Break_int_distance / hundread_thousand +'0';
-//    /////////////////////////////////////////////1//////010000///////////////////////////////////////////////////////////
-//    //if ((Break_int_distance % hundread_thousand) / ten_thousand ==0)  Break_distance_array[1] = 0x20;
-//    if
-//    (
-//            (Break_int_distance / hundread_thousand == 0)   &&
-//            ((Break_int_distance % hundread_thousand) / ten_thousand ==0)
-//    )    Break_distance_array[1] = 0x20;
-//    /*
-//            else if
-//            (      ((Break_int_distance % hundread_thousand) / ten_thousand == 0) &&
-//                    ((Break_int_distance / hundread_thousand >0)     )
-//            )   Break_distance_array[1]='0';
-//     */
-//    else Break_distance_array[1] = (Break_int_distance % hundread_thousand) / ten_thousand +'0';
-//    /////////////////////////////////////////////2//////001000///////////////////////////////////////////////////////////
-//    //if (((Break_int_distance % hundread_thousand) % ten_thousand) / thousand ==0)  Break_distance_array[2] = 0x20;
-//    if
-//    (
-//            (Break_int_distance / hundread_thousand == 0) &&
-//            ((Break_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Break_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0)
-//    )    Break_distance_array[2] = 0x20;
-//    /*
-//            else if
-//            (      (((Break_int_distance % hundread_thousand) % ten_thousand) / thousand == 0) &&
-//                    (((Break_int_distance % hundread_thousand) / ten_thousand  >0)     )
-//            )   Break_distance_array[2]='0';
-//     */
-//    else Break_distance_array[2] = ((Break_int_distance % hundread_thousand) % ten_thousand ) / thousand+'0';
-//
-//    /////////////////////////////////////////////3//////000100///////////////////////////////////////////////////////////
-//    //    if ((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread==0)  Break_distance_array[3] = 0x20;
-//    if
-//    (
-//            (Break_int_distance / hundread_thousand == 0) &&
-//            ((Break_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Break_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-//            ((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)
-//    )    Break_distance_array[3] = 0x20;
-//    /*
-//        else if
-//        (      (((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread)== 0) &&
-//                (((((Break_int_distance % hundread_thousand) % ten_thousand) / thousand )  >0)     )
-//        )    Break_distance_array[3]='0';
-//     */
-//    else Break_distance_array[3] = (((Break_int_distance % hundread_thousand) % ten_thousand ) % thousand) /hundread +'0';
-//    /////////////////////////////////////////////4//////000010///////////////////////////////////////////////////////////
-//    if (
-//            (Break_int_distance / hundread_thousand == 0) &&
-//            ((Break_int_distance % hundread_thousand) / ten_thousand ==0) &&
-//            (((Break_int_distance % hundread_thousand) % ten_thousand) / thousand  ==0) &&
-//            ((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread ==0)   &&
-//            (((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)
-//    )
-//        Break_distance_array[4] = 0x20;
-//    /*
-//        else if
-//        (
-//                (((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten==0)  &&
-//                ((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) /hundread > 0)
-//        )
-//                Break_distance_array[4] = '0';
-//     */
-//    else Break_distance_array[4] = ((((Break_int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) /ten+'0';
-//
-//    /////////////////////////////////////////////5//////000001///////////////////////////////////////////////////////////
-//
-//    if
-//    ((((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one==0)
-//        Break_distance_array[5] = '0';
-//    /*
-//        else if
-//        (      ((((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) %ten) /one== 0) &&
-//                (((((Break_int_distance % hundread_thousand) % ten_thousand) % thousand ) %hundread) /ten >0)     )
-//            Break_distance_array[5]='0';
-//     */
-//    else Break_distance_array[5] = (((((Break_int_distance % hundread_thousand) % ten_thousand ) % thousand) %hundread) %ten) /one+'0';
-//
-//}

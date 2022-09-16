@@ -21,6 +21,8 @@
 #include <tm4c123gh6pm.h>
 #include <time.h>
 
+#include <header/timer.h>
+
 extern volatile unsigned int IRQ_A1,IRQ_A2, IRQ_B1, IRQ_B2;
 extern volatile uint32_t irq_status,can_flag;
 volatile uint32_t sts_test;
@@ -28,49 +30,19 @@ extern volatile uint32_t i;
 extern volatile uint32_t isr_flag ;
 extern int can_check;
 
-uint32_t CANTick;
-clock_t CANstart, CANend;
-
-void can1_handler(void)
-{
-//    CANstart = clock();
-    int i=0;
-    int bitCnt = 1;
-    for (i=0; i<MAX_ID_NUM; i++)
-    {
-        if (CAN1_MSG1INT_R & bitCnt)
-        {
-            CAN1_IF1MCTL_R = (CAN1_IF1MCTL_R&(~(unsigned long)CAN_IF1MCTL_INTPND));
-            CAN1_IF1CMSK_R =  CAN_IF1CMSK_CLRINTPND | CAN_IF1CMSK_NEWDAT | CAN_IF1CMSK_DATAA | CAN_IF1CMSK_DATAB ;
-            CAN1_IF1CRQ_R  = (CAN1_IF1CRQ_R&(~(unsigned long)CAN_IF1CRQ_MNUM_M)) | (i+1);
-
-            while (1)
-            {
-                if (!(CAN1_IF1CRQ_R & CAN_IF1CRQ_BUSY))    //If not busy
-                    break;
-            }
-            (*(short *)(&(globalCanData[i].CANDATA[0])) ) = CAN1_IF1DA1_R;
-            (*(short *)(&(globalCanData[i].CANDATA[2])) ) = CAN1_IF1DA2_R;
-            (*(short *)(&(globalCanData[i].CANDATA[4])) ) = CAN1_IF1DB1_R;
-            (*(short *)(&(globalCanData[i].CANDATA[6])) ) = CAN1_IF1DB2_R;
-            globalCanData[i].ifValid = 1;
-        }
-        bitCnt = bitCnt << 1;
-    }
-    irq_status = CAN1_STS_R;
-//    CANend = clock();
-//    CANTick = CANend-CANstart;
-}
+uint32_t GetTickCheck;
+uint32_t StartTick, Tickcnt;
+extern uint32_t EndTick;
 
 
 void can_init(int bps, int irq)
 {
     SYSCTL_RCGCCAN_R   = (SYSCTL_RCGCCAN_R&(~(unsigned long)(SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1)))
-                                                            | (SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1);
+                                                                                    | (SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1);
     //CAN0, 1 CLOCK ON(1,0 <<1) == Enable CAN0, CAN1
 
     SYSCTL_RCGCGPIO_R  = (SYSCTL_RCGCGPIO_R&(~(unsigned long)SYSCTL_RCGCGPIO_R0))
-                                                            | SYSCTL_RCGCGPIO_R0;
+                                                                                    | SYSCTL_RCGCGPIO_R0;
     //GPIO PORT A CLOCK ON
 
     GPIO_PORTA_DEN_R  = (GPIO_PORTA_DEN_R&(~(unsigned long)0x03)) | 0x01|0x02;
@@ -137,6 +109,45 @@ void can_init(int bps, int irq)
     CAN1_CTL_R = (CAN1_CTL_R&(~(unsigned long)CAN_CTL_INIT));   //Put into Running Mode.
 }
 
+void can1_handler(void)
+{
+    int i=0;
+    int bitCnt = 1;
+    if(Tickcnt == 0)
+    {
+        StartTick = GetTickCheck;
+        Tickcnt++;
+    }
+    else
+    {
+        Tickcnt = 0;
+        EndTick = GetTickCheck - StartTick;
+    }
+    for (i=0; i<MAX_ID_NUM; i++)
+    {
+        if (CAN1_MSG1INT_R & bitCnt)
+        {
+            CAN1_IF1MCTL_R = (CAN1_IF1MCTL_R&(~(unsigned long)CAN_IF1MCTL_INTPND));
+            CAN1_IF1CMSK_R =  CAN_IF1CMSK_CLRINTPND | CAN_IF1CMSK_NEWDAT | CAN_IF1CMSK_DATAA | CAN_IF1CMSK_DATAB ;
+            CAN1_IF1CRQ_R  = (CAN1_IF1CRQ_R&(~(unsigned long)CAN_IF1CRQ_MNUM_M)) | (i+1);
+
+            while (1)
+            {
+                if (!(CAN1_IF1CRQ_R & CAN_IF1CRQ_BUSY))    //If not busy
+                    break;
+            }
+            (*(short *)(&(globalCanData[i].CANDATA[0])) ) = CAN1_IF1DA1_R;
+            (*(short *)(&(globalCanData[i].CANDATA[2])) ) = CAN1_IF1DA2_R;
+            (*(short *)(&(globalCanData[i].CANDATA[4])) ) = CAN1_IF1DB1_R;
+            (*(short *)(&(globalCanData[i].CANDATA[6])) ) = CAN1_IF1DB2_R;
+            globalCanData[i].ifValid = 1;
+        }
+        bitCnt = bitCnt << 1;
+    }
+    irq_status = CAN1_STS_R;
+}
+
+
 void can_rx2(int id, char msgBoxNum)    //Purely setup Message Box.
 {
     CAN1_IF1CMSK_R = (CAN1_IF1CMSK_R&(~(unsigned long)0xFF)) |
@@ -159,88 +170,4 @@ void can_rx2(int id, char msgBoxNum)    //Purely setup Message Box.
             break;
     }
 
-}
-
-void can_to_spi_rpm(char* (*a),unsigned int arg1)
-{
-
-    uint32_t a2_1=arg1;   //CAN1_IF1DA2_R
-    uint32_t a2_2=(uint32_t)((a2_1>>8)&0x000000ff);  //
-
-    static char DB1[2]={0,};
-
-    DB1[0]=((char)a2_2>>4);
-    DB1[1]=((char)a2_2 & 0x0f);
-
-    DB1[0]=DB1[0]+'0';
-
-    static char DB2[8]={'0','0','0','0','R','P','M','\0'};
-    DB2[0]=DB1[0];
-
-    *a=DB2;
-}
-
-void can_to_spi_acceleration(char* (*a),unsigned int arg1)
-{
-    uint32_t a2_1=arg1;   //real car  CAN1_IF1DA2_R
-    uint32_t a2_2=(uint32_t)((a2_1>>8)&0x000000ff);  //0x2B -> debugging
-
-    static char DD1[2]={0,};
-
-#if (debugging == 0)
-    //Real code
-    DD1[0]=((char)a2_1>>4);
-    DD1[1]=((char)a2_1 & 0x0f);
-#endif
-
-#if (debugging == 1)
-    // Debugging
-    DD1[0]=((char)a2_2>>4);
-    DD1[1]=((char)a2_2 & 0x0f);
-#endif
-
-    static char DD2[8]={0,0,0,'K','m','/','h','\0'};
-
-    int i;
-
-    i=DD1[0]*16+DD1[1];
-
-    if((i/100)==0) DD2[0]=0x20;       else DD2[0]=i/100 + '0';
-    if((i%100)/10 ==0) DD2[1]=0x20;   else DD2[1]=(i%100)/10 + '0';
-
-    DD2[2]=((i%100)%10) + '0';
-
-    *a=DD2;
-}
-
-void can_to_spi_transmission(char* (*a),unsigned int arg1)
-{
-    uint32_t a1_1=arg1;   //CAN1_IF1DA1_R
-    uint32_t a1_2=(a1_1>>8)&0x000000ff;  //0x01
-
-    static char DC1[2]={0,};
-
-    DC1[0]=((char)a1_2>>4);
-    DC1[1]=((char)a1_2 & 0x0f);
-
-    static char DC2[2]={'0','\0'};
-
-    switch(DC1[1]) {
-    case 5 :
-        DC2[0]='D';
-        break;
-    case 6 :
-        DC2[0]='N';
-        break;
-    case 7 :
-        DC2[0]='R';
-        break;
-    case 0 :
-        DC2[0]='P';
-        break;
-    default:
-        DC2[0]='P';
-    }
-
-    *a=DC2;
 }

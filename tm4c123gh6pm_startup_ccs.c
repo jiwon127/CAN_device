@@ -36,6 +36,7 @@ static void FaultISR(void);
 static void IntDefaultHandler(void);
 static void timer0_handler(void);
 static void timer2_handler(void);
+static void timer3_handler(void);
 static void can1_handler(void);
 static void timer0test_handler(void);
 
@@ -124,7 +125,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // GPIO Port H
     IntDefaultHandler,                      // UART2 Rx and Tx
     IntDefaultHandler,                      // SSI1 Rx and Tx
-    IntDefaultHandler,                      // Timer 3 subtimer A
+    timer3_handler,                      // Timer 3 subtimer A 35
     IntDefaultHandler,                      // Timer 3 subtimer B
     IntDefaultHandler,                      // I2C1 Master and Slave
     IntDefaultHandler,                      // Quadrature Encoder 1

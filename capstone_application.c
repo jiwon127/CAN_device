@@ -29,7 +29,7 @@
 
 #include <header/debugging_h.h>
 #include <header/FlashtoRAMtest.h>
-
+#include <time.h>
 #define DEBUG_TRANSMISSION_CAN_ID 0x3b
 #define DEBUG_RPM_CAN_ID 0x3cb
 #define DEBUG_ACCELERATION_CAN_ID 0x6B2
@@ -69,12 +69,16 @@ uint32_t Break_distance_data[sizeof(Break_distance2)]={0,};
 //yy
 
 
+uint32_t GetTickCheck, EndTick;
+uint32_t ChangeTick;
+
 
 volatile uint32_t i=0;
 hib_count = 0;
 flash_count = 0;
 timercheck_count = 0;
 can_check = 0;
+
 
 CANDATA_T globalCanData[MAX_ID_NUM];
 
@@ -143,6 +147,7 @@ int main()
 
     Timer0_init(0x00030d40);    //timer0 is for distance    //Interrupt Request every 0.1s
     Timer2_init(0x01312D00);    //timer2 is for hib condition check    //Interrupt Request every 1s
+    Timer3_init(0x000003E8);
 
     char *Gear,*Rpm,*Speed;
     uint8_t pressed = 0;
@@ -150,10 +155,17 @@ int main()
     uint8_t rst_flag = 0;
     uint8_t yes_flag = 0;
 
+    uart_7_tx_str("start\r\n");
+
     while(1)
     {
         delay_ms(100);
+        ChangeTick = EndTick * 1000;
+
+        Timer0_init(ChangeTick);
         uint8_t Tag = spi_read_8(REG_TOUCH_TAG + RAM_REG);  //Check for touches
+        uart_7_tx_hex(EndTick);
+        uart_7_tx_str("\r\n");
 
         ascii_Engine_distance_array();
         ascii_Mission_distance_array();
@@ -223,7 +235,7 @@ int main()
             point_display = 1;
         }
 
-        if(hib_count  == 10)
+        if(hib_count  == 4)
         {
             make_character(0,"Into Hibernation!!");
             delay_ms(1000);
@@ -238,7 +250,7 @@ int main()
 
         if((GPIO_PORTF_DATA_R & 0x8) == 0)
         {
-            flash_count = 0;
+//            flash_count = 0;
             hib_count = 0;
         }
 
