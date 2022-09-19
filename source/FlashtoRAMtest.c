@@ -62,13 +62,11 @@ void timer0test_handler(void)   //convert receive can data to char ptr for displ
     }
     else
     {
-        //LED_OnOff(1);
 #if (debugging == 0)
         uint32_t a2_1=*(short*)(&(isr1CanData[2].CANDATA[2])); // real car
 #endif
 
 #if (debugging == 1)
-//        uint32_t a2_1=*(short*)(&(isr1CanData[2].CANDATA[0]));   // debugging
         uint32_t a2_1=*(short*)(&(isr1CanData[2].CANDATA[2])); // real car
         uint32_t a2_2= (uint32_t)((a2_1>>8)&0x000000ff);// debugging
 #endif
@@ -91,9 +89,9 @@ void timer0test_handler(void)   //convert receive can data to char ptr for displ
         Mission_interval += speed;
         Break_interval += speed;
 
-        Engine_distance2 = Engine_interval * 2.7778e-6;
-        Mission_distance2 = Mission_interval * 2.7778e-6;
-        Break_distance2 = Break_interval * 2.7778e-6;
+        Engine_distance2 = Engine_interval * 2.7777e-3;
+        Mission_distance2 = Mission_interval * 2.7777e-4;
+        Break_distance2 = Break_interval * 2.7777e-5;
     }
     //flash
     memcpy(Engine_distance_data,&Engine_interval,sizeof(Engine_distance_data));

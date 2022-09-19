@@ -9,7 +9,7 @@
 #define HEADER_DEBUGGING_H_H_
 
 
-#define debugging   0
+#define debugging   1
 
 // 1 = debugging
 // 0 = non debugging

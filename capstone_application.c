@@ -160,10 +160,11 @@ int main()
     while(1)
     {
         delay_ms(100);
-        ChangeTick = EndTick * 1000;
-
-        Timer0_init(ChangeTick);
         uint8_t Tag = spi_read_8(REG_TOUCH_TAG + RAM_REG);  //Check for touches
+
+        ChangeTick = EndTick * 1000;
+        Timer0_init(ChangeTick);
+
         uart_7_tx_hex(EndTick);
         uart_7_tx_str("\r\n");
 
@@ -250,7 +251,7 @@ int main()
 
         if((GPIO_PORTF_DATA_R & 0x8) == 0)
         {
-//            flash_count = 0;
+            flash_count = 0;
             hib_count = 0;
         }
 

@@ -38,11 +38,11 @@ extern uint32_t EndTick;
 void can_init(int bps, int irq)
 {
     SYSCTL_RCGCCAN_R   = (SYSCTL_RCGCCAN_R&(~(unsigned long)(SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1)))
-                                                                                    | (SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1);
+                                                                                                    | (SYSCTL_RCGCCAN_R0|SYSCTL_RCGCCAN_R1);
     //CAN0, 1 CLOCK ON(1,0 <<1) == Enable CAN0, CAN1
 
     SYSCTL_RCGCGPIO_R  = (SYSCTL_RCGCGPIO_R&(~(unsigned long)SYSCTL_RCGCGPIO_R0))
-                                                                                    | SYSCTL_RCGCGPIO_R0;
+                                                                                                    | SYSCTL_RCGCGPIO_R0;
     //GPIO PORT A CLOCK ON
 
     GPIO_PORTA_DEN_R  = (GPIO_PORTA_DEN_R&(~(unsigned long)0x03)) | 0x01|0x02;
@@ -113,20 +113,33 @@ void can1_handler(void)
 {
     int i=0;
     int bitCnt = 1;
-    if(Tickcnt == 0)
-    {
-        StartTick = GetTickCheck;
-        Tickcnt++;
-    }
-    else
-    {
-        Tickcnt = 0;
-        EndTick = GetTickCheck - StartTick;
-    }
+    //        if(Tickcnt == 0)
+    //        {
+    //            StartTick = GetTickCheck;
+    //            Tickcnt++;
+    //        }
+    //        else
+    //        {
+    //            Tickcnt = 0;
+    //            EndTick = GetTickCheck - StartTick;
+    //        }
     for (i=0; i<MAX_ID_NUM; i++)
     {
         if (CAN1_MSG1INT_R & bitCnt)
         {
+            if(i == 2)
+            {
+                if(Tickcnt == 0)
+                {
+                    StartTick = GetTickCheck;
+                    Tickcnt++;
+                }
+                else
+                {
+                    Tickcnt = 0;
+                    EndTick = GetTickCheck - StartTick;
+                }
+            }
             CAN1_IF1MCTL_R = (CAN1_IF1MCTL_R&(~(unsigned long)CAN_IF1MCTL_INTPND));
             CAN1_IF1CMSK_R =  CAN_IF1CMSK_CLRINTPND | CAN_IF1CMSK_NEWDAT | CAN_IF1CMSK_DATAA | CAN_IF1CMSK_DATAB ;
             CAN1_IF1CRQ_R  = (CAN1_IF1CRQ_R&(~(unsigned long)CAN_IF1CRQ_MNUM_M)) | (i+1);
@@ -134,7 +147,7 @@ void can1_handler(void)
             while (1)
             {
                 if (!(CAN1_IF1CRQ_R & CAN_IF1CRQ_BUSY))    //If not busy
-                    break;
+                        break;
             }
             (*(short *)(&(globalCanData[i].CANDATA[0])) ) = CAN1_IF1DA1_R;
             (*(short *)(&(globalCanData[i].CANDATA[2])) ) = CAN1_IF1DA2_R;

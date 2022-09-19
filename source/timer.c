@@ -161,12 +161,11 @@ void timer2_handler(void)   //check gear, speed, rpm and enter hibernate ISR
     }
     else
     {
-        //flash_count=0;
         hib_count = 0;
     }
 #if (debugging == 1)
     sec0++;
-    if( (sec0%1200) == 0)
+    if( (sec0%3600) == 0)
     {
         uart_7_tx_str("e\r\n");
     }
